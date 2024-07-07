@@ -1,107 +1,104 @@
-const express= require('express');
-const fs = require('fs');
-const tour = JSON.parse(
-    fs.readFileSync(`${__dirname}/../dev-data/data/tours-simple.json`)
-  );
+const { trusted } = require('mongoose');
+const Tour = require('./../models/tourModels');
 
 
-exports.getAllTours = (req, res)=>{ //Exporting the functions directly so that they can be used in our Router files
-    res.status(200).json({
-        status:'success',
-        requestedAt: req.requestTime,
-        results: tour.length,
-        data : {
-            tour //This will get us the entire array i.e the complete array of all tour objects
-        }
-    })
-}
+exports.getAllTours =async (req, res)=>{ //Exporting the functions directly so that they can be used in our Router files
+    try{
+        const newTour = await Tour.find();
+        res.status(200).json({
+            status:'success',
+            data:{
+                tour: newTour
+            }
 
-exports.getTour = (req, res)=>{
-    if(req.params.id *1 > tour.length){
-        return res.status(404).json({
+        })
+    }catch(err){
+        res.status(400).json({
             status:'fail',
-            message:'Invalid ID'
-        })
-    }
-
-    const id = req.params.id *1 ; //The params property of the request object shows all the variables/parameters of the URL
-    const Tour = tour.find(el => el.id === id)
-    console.log(Tour);
-    res.status(200).json({
-        status:'success',
-        data:{
-            Tour
-        }
+            message: err
     })
+    }
 }
 
-  exports.updateTour =  (req,res)=>{
-    if(req.params.id * 1 > tour.length){ //The params property of the request object shows all the variables/parameters of the URL
-        return res.status(404).json({
-            status: "fail",
-            message:"Invalid ID"
+exports.getTour =async (req, res)=>{
+  
+    try{
+        const newTour = await Tour.findById(req.params.id); //The params property of the request object shows all the variables/parameters of the URL
+        res.status(200).json({
+            status:'success',
+            data:{
+                tour: newTour
+            }
+
         })
     }
+    catch(err){
+        res.status(400).json({
+            status:'fail',
+            message: err
+        })
+    }
+}
 
-    res.status(200).json({
-        status: "success",
-        data:{
-            tour: "<Updated Data>......."
-        }
-    })
+  exports.updateTour = async (req,res)=>{
+  
+    try{
+        const newTour = await Tour.findByIdAndUpdate(req.params.id, req.body,{
+            new: true,
+            runValidators: true
+        });
+
+        res.status(200).json({
+            status: "success",
+            data: {
+                tour: newTour
+            }
+        })
+    }
+    catch(err){
+        res.status(400).json({
+            status: "error",
+            message: err
+        })
+    }
+  
    
 }
 
-exports.deleteTour =  (req, res)=>{
-    if(req.params.id * 1 > tour.length){
-        return res.status(404).json({
-            status:"fail",
-            message: "Invalid Id"
+exports.deleteTour = async  (req, res)=>{
+ 
+    try{
+        const newTour = await Tour.deleteOne({_id: req.params.id});
+        res.status(200).json({
+            status:'success',
+            data: null
         })
-
-    }
-    
-    res.status(204).json({
-        status:"success",
-        data: null
-    })
-}
-
-exports.checkID = (req, res, next, val) =>{ //The param middleware has 4 parameters. The value parameter will contain the value of the URL
-    if(req.params.id * 1 > tour.length){ //The params property of the request object shows all the variables/parameters of the URL
-        console.log(`The Id is ${val}`)
-        return res.status(404).json({
+    }catch(err){
+        res.status(400).json({
             status:'fail',
-            message: 'Invalid ID'
-        });
-    }      
-    
-    next(); 
-    
+            message: err
+        })
+    }
 }
 
-exports.checkBody = ((req, res, next)=>{
-    if(!req.body.name || !req.body.price) return res.status(400).json({
-        status:'fail',
-        message:'Missing name or price'
-    })
-    next();
-})
 
-
-exports.createTour =  (req, res) => {
-    //In the POST method we are transmitting the data from the client side to the server
-    //res.send('Done'); //This message will be displayed after the request has been posted
+exports.createTour = async (req, res) => {
+     //In the POST method we are transmitting the data from the client side to the server
+     //res.send('Done'); //This message will be displayed after the request has been posted
   
-    const newID = tour[tour.length - 1].id + 1; //Assigning a new ID (making this weird ID ourselves)
-    const newTour = Object.assign({ id: newID }, req.body); //Assigning the newTour the created ID and the data requested 
-    tour.push(newTour); //This will push our newTour request into the Tour array
-    fs.writeFile(`${__dirname}/dev-data/data/tours-simple.json`, JSON.stringify(tour), (error)=>{
-      res.status(201).json({
-          status:"success",
-          data:{
-              tour : newTour
-          }
-      })
-    }); //This will add the new object on the client side, i.e our own file
+     try{
+        const newTour = await Tour.create(req.body); //We are using async awiat because this create method returns a Promise 
+        res.status(201).json({
+            status: 'success',
+            data : {
+                tour : newTour
+            }
+        })
+     }
+     catch(err){
+        res.status(400).json({
+            status:'fail',
+            message: "There was an error creating the tour"
+        })
+     }
   };

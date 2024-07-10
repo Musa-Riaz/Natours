@@ -1,9 +1,14 @@
 const Tour = require('./../models/tourModels');
 
+exports.aliasTopTour =  (req, res, next)=>{  //This middleware will prefill the query object with values that will be needed for top-5-tours route
+     req.query.limit = '5';
+     req.query.sort = '-ratingsAverage,price';
+     req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
+    next();
+}
 exports.getAllTours =async (req, res)=>{ //Exporting the functions directly so that they can be used in our Router files
     
     try{
-        
         //Building query
         //Filtering
         const queryObj = {...req.query} //Since in javascript, when we assign a variable the value of an object, the variable contains the reference of teh object. Since we need the hard copy of the query object, we will destructure the object in the variable, giving us a new object, queryObj
@@ -36,6 +41,18 @@ exports.getAllTours =async (req, res)=>{ //Exporting the functions directly so t
         }
         else{
             query = query.select('-__v'); //Excluding the __v field using the - operator
+        }
+
+        //Pagination 
+        const page = req.query.page * 1 || 1;
+        const limit = req.query.limit * 1 || 100;
+        const skip = (page - 1) * limit; //This formula will allow the user to pagniate
+        query = query.skip(skip).limit(limit);
+
+        if(req.query.page){
+            const numTours= await Tour.countDocuments(); //Model method to count the number of documents in a collection
+            if(skip >= numTours) throw new Error('This page does not exist');
+
         }
         //Execute the query
         const newTour = await query;

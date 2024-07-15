@@ -35,6 +35,14 @@ app.use('/api/v1/tours', tourRouter);  //Here the express routers(tourRouter and
 app.use('/api/v1/users', userRouter);
 
 
+//Handling undefined routes
+app.all('*', (req, res, next) =>{
+  res.status(400).json({
+    status: 'fail',
+    message: `Can't find ${req.originalUrl} on this server`
+  })
+})
+
 
 
 module.exports = app;

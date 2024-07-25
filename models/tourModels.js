@@ -9,7 +9,6 @@ const tourSchema = new mongoose.Schema({ //A schema is bascially a blueprint tha
       type: String ,
       maxLength:[40,'A tour must have less or equal to 40 characters'],
       minLength:[10,'A tour must have more or equal to 10 characters'],
-      validate: [validator.isAlpha, 'Tour name must only contain characters'] //The isAlpha method from the validator package will check if the name only contains characters}
     },
   
     duration:{

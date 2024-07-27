@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
@@ -17,6 +18,14 @@ const userSchema  = new mongoose.Schema({
     photo:{
         type:String
     },
+
+    role:{
+        type: String,
+        enum:['admin', 'guide', 'lead-guide', 'user'],
+        default:"role"
+    }
+    ,
+
     password:{
         type:String,
         required:[true, 'Please provide a password'],
@@ -36,8 +45,17 @@ const userSchema  = new mongoose.Schema({
         }
     },
     
+
+    passwordResetToken : String,
+    passwordResetExpires: Date,
     
 });
+
+userSchema.pre('save', function(next){
+    if(!this.isModified('password') || this.isNew) return next(); //If the password is not modified or the document is new, then we will return next
+
+    this.passwordChangedAt = Date.now() - 1000; //This will ensure that the token is created after the password has been changed
+})
 
 userSchema.pre('save', async function(next){
     if (!this.isModified('password')) return next(); //If the password is not modified, then we will return next
@@ -50,6 +68,22 @@ userSchema.pre('save', async function(next){
 
 userSchema.methods.correctPassword = async function(candidatePassword, userPassword){
     return await bcrypt.compare(candidatePassword, userPassword); //This will return true if the password is correct and false if the password is incorrect
+}
+
+userSchema.methods.createPasswordResetToken =  function(){
+    const resetToken = crypto.randomBytes(32).toString('hex'); //generating a random token
+
+    this.passwordResetToken = crypto //Hashing the reset token in the database
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+    console.log({resetToken}); //This will show the reset token
+    console.log({passwordResetToken: this.passwordResetToken});  //This will show the password reset token in the database 
+
+    this.passwordResetExpires = Date.now() + 10 * 60 * 1000; //The token will expire after 10 minutes
+
+    return resetToken; //Returning the unhashed token
 }
 
 
